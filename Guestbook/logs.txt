@@ -1,0 +1,4 @@
+68.106.186.33 - - [23/Apr/2013:20:38:36 -0700] "GET /favicon.ico HTTP/1.1" 404 0 - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:20.0) Gecko/20100101 Firefox/20.0"
+68.106.186.33 - - [23/Apr/2013:20:38:36 -0700] "GET /favicon.ico HTTP/1.1" 404 0 - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:20.0) Gecko/20100101 Firefox/20.0"
+68.106.186.33 - - [23/Apr/2013:20:38:35 -0700] "GET /stylesheets/main.css HTTP/1.1" 200 0 "http://www.scalabook.appspot.com/guestbook.jsp?guestbookName=red" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:20.0) Gecko/20100101 Firefox/20.0"
+68.106.186.33 - - [23/Apr/2013:20:38:35 -0700] "GET /guestbook.jsp?guestbookName=red HTTP/1.1" 200 1196 "http://www.scalabook.appspot.com/guestbook.jsp?guestbookName=default" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:20.0) Gecko/20100101 Firefox/20.0"
