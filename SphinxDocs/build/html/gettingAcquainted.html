@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Getting Acquainted With Google App Engine &mdash; ScalaOnGAE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="ScalaOnGAE 1.0 documentation" href="index.html" />
+    <link rel="next" title="Hello, Scala!" href="helloScala.html" />
+    <link rel="prev" title="Configuring Ant" href="configuringAnt.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="helloScala.html" title="Hello, Scala!"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="configuringAnt.html" title="Configuring Ant"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="getting-acquainted-with-google-app-engine">
+<h1>Getting Acquainted With Google App Engine<a class="headerlink" href="#getting-acquainted-with-google-app-engine" title="Permalink to this headline">¶</a></h1>
+<p>Before you begin developing and deploying apps to GAE, there are a few pieces of information that are vital to your success.</p>
+<div class="section" id="expected-directory-structure">
+<h2>Expected Directory Structure<a class="headerlink" href="#expected-directory-structure" title="Permalink to this headline">¶</a></h2>
+<p>When deploying your app to GAE, your compiled classes and other resources must be placed within a specific file structure to be properly served by GAE. GAE uses the WAR format, such that any file within the <em>war</em> directory in your apps top level directory is considered part of the complete app. A snapshot of the <em>war</em> directory might look like the following:</p>
+<div class="highlight-python"><pre>war/
+  WEB-INF/
+    lib/
+    classes/</pre>
+</div>
+<p>Inside of the <em>war</em> directory, but outside of the <em>WEB-INF</em> directory, you would place any static resources such as image files, as well as any interfaces for your app such as JSP files. Just inside the <em>WEB-INF</em> directory, you would place any app configuration files such as the <em>web.xml</em> or <em>appengine-web.xml</em> files. The <em>lib</em> directory is meant to contain the class files of any classes that your app needs while executing, while the <em>classes</em> directory contains the class files for your app&#8217;s classes.</p>
+</div>
+<div class="section" id="the-deployment-descriptor-web-xml">
+<h2>The Deployment Descriptor (<em>web.xml</em>)<a class="headerlink" href="#the-deployment-descriptor-web-xml" title="Permalink to this headline">¶</a></h2>
+<p>To specify your apps routes, require authentication for specific pages, and other web page configuration, you use the <em>web.xml</em> file. Every GAE app needs a deployment descriptor as this file is where you map your servlets, JSPs and other files to actual URLs. For a complete description of this file, see the <a class="reference external" href="https://developers.google.com/appengine/docs/java/config/webxml">Google Developer docs</a>.</p>
+</div>
+<div class="section" id="the-app-config-descriptor-appengine-web-xml">
+<h2>The App Config Descriptor (<em>appengine-web.xml</em>)<a class="headerlink" href="#the-app-config-descriptor-appengine-web-xml" title="Permalink to this headline">¶</a></h2>
+<p>For further configurations within your app and to declare your app&#8217;s registered app ID and version number, you use the <em>appengine-web.xml</em> file. One important element to set within this file is the <em>&lt;threadsafe&gt;</em> element. By writing <em>&lt;threadsafe&gt;true&lt;/threadsafe&gt;</em> in your <em>appengine-web.xml</em> file, you are specifying that GAE can use concurrent requests while executing your app. You can also handle configuration such as declaring what files are static (images, CSS, etc.) and what files are resources (JSPs, etc.), configure cache expiration times for static files and much more. For a complete description of this file, see <a class="reference external" href="https://developers.google.com/appengine/docs/java/config/appconfig">Google&#8217;s documentation</a>.</p>
+</div>
+<div class="section" id="configure-logging-behavior">
+<h2>Configure Logging Behavior<a class="headerlink" href="#configure-logging-behavior" title="Permalink to this headline">¶</a></h2>
+<p>All GAE logging is through java.util.logging by default. To configure the logging behavior of your app, you must add the following lines to your <em>appengine-web.xml</em> file:</p>
+<div class="highlight-python"><pre>&lt;system-properties&gt;
+   &lt;property name="java.util.logging.config.file" value="WEB-INF/logging.properties"/&gt;
+&lt;/system-properties&gt;</pre>
+</div>
+<p>These lines tell GAE to look in the <em>war/WEB-INF</em> directory for a file named <em>logging.properties</em> for logging configurations. Inside of this <em>logging.properties</em> file you can specify different logging levels:</p>
+<ul class="simple">
+<li>FINEST (lowest level)</li>
+<li>FINER</li>
+<li>FINE</li>
+<li>CONFIG</li>
+<li>INFO</li>
+<li>WARNING</li>
+<li>SEVERE (highest level)</li>
+</ul>
+<p>A simple <em>logging.properties</em> file might look like this:</p>
+<div class="highlight-python"><pre># Set the default logging level for all loggers to WARNING
+.level = WARNING
+# Specifically set the logging level for the guestbook package to INFO
+guestbook.level = INFO</pre>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Getting Acquainted With Google App Engine</a><ul>
+<li><a class="reference internal" href="#expected-directory-structure">Expected Directory Structure</a></li>
+<li><a class="reference internal" href="#the-deployment-descriptor-web-xml">The Deployment Descriptor (<em>web.xml</em>)</a></li>
+<li><a class="reference internal" href="#the-app-config-descriptor-appengine-web-xml">The App Config Descriptor (<em>appengine-web.xml</em>)</a></li>
+<li><a class="reference internal" href="#configure-logging-behavior">Configure Logging Behavior</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="configuringAnt.html"
+                        title="previous chapter">Configuring Ant</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="helloScala.html"
+                        title="next chapter">Hello, Scala!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/gettingAcquainted.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="helloScala.html" title="Hello, Scala!"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="configuringAnt.html" title="Configuring Ant"
+             >previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Chris Horuk.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

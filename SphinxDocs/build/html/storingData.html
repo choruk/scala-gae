@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Storing Data &mdash; ScalaOnGAE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="ScalaOnGAE 1.0 documentation" href="index.html" />
+    <link rel="prev" title="Hello, Scala!" href="helloScala.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="helloScala.html" title="Hello, Scala!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="storing-data">
+<h1>Storing Data<a class="headerlink" href="#storing-data" title="Permalink to this headline">¶</a></h1>
+<p>The chief concern of most web apps, and really any app in general, is how and where to store the app&#8217;s data. With GAE, you have three different options: a <a class="reference external" href="https://developers.google.com/appengine/docs/java/datastore/overview">basic schemaless object datastore</a>, a <a class="reference external" href="https://developers.google.com/cloud-sql/">cloud SQL datastore</a>, and an <a class="reference external" href="https://developers.google.com/appengine/docs/java/googlestorage/">advanced object datastore</a>. The basic schemaless object datastore is where most will start and provides a very scalable option with a choice between using JDO, JPA or a low-level Datastore API. For a more advanced object datastore, Google Cloud Storage allows developers to store their data directly on Google&#8217;s infrastructure with almost no limit on individual object size and a number of other amazing features. If you need a relational database, the Google Cloud SQL service is exactly what you want: a relational database in the cloud.</p>
+<p>In the following sections, I will give examples on how to use each of the three different data storing options with Scala.</p>
+<div class="section" id="using-the-low-level-datastore-api">
+<h2>Using the Low-Level Datastore API<a class="headerlink" href="#using-the-low-level-datastore-api" title="Permalink to this headline">¶</a></h2>
+<p>The low-level Datastore API gives you access to App Engine&#8217;s schemaless High Replication Datastore. The Datastore holds objects, referred to as entities, each with one or more properties. Entities are grouped by kind, but two entities of the same kind don&#8217;t need to have the same properties; the grouping is merely used for the purpose of queries. To retrieve information from the Datastore, you must construct a query with filter parameters to configure how the query&#8217;s results are sorted. Every query needs one or more Datastore indexes, which are just tables containing entities in an order specified by the index&#8217;s properties.</p>
+<p>The sections that follow are part of a code example displaying how to:</p>
+<ul class="simple">
+<li>Generate indexes to support your app&#8217;s Datastore queries.</li>
+<li>Use JSPs to create your apps interfaces.</li>
+<li>Use the low-level Datastore API to create new entities and execute queries on those entities.</li>
+</ul>
+<div class="section" id="a-note-about-indexing">
+<span id="indexing"></span><h3>A Note About Indexing<a class="headerlink" href="#a-note-about-indexing" title="Permalink to this headline">¶</a></h3>
+<p>Any interactions you have with your app while it is running on the development server will generate indexes automatically for you as needed. These indexes will be placed inside of a file named <em>datastore-indexes-auto.xml</em> inside of a directory named <em>appengine-generated</em> in your <em>war/WEB-INF</em> directory. You can also specify your own indexes inside of a file named <em>datastore-indexes.xml</em> that you must store directly in your <em>war/WEB-INF</em> directory. A simple example of this file follows:</p>
+<div class="highlight-python"><pre>&lt;datastore-indexes autoGenerate="true"&gt;
+
+    &lt;datastore-index kind="Greeting" ancestor="true"&gt;
+        &lt;property name="date" direction="desc"/&gt;
+    &lt;/datastore-index&gt;
+
+&lt;/datastore-indexes&gt;</pre>
+</div>
+<p>The outer <em>&lt;datastore-indexes&gt;</em> tag is the wrapper you place around all of the indexes you wish to declare. The <em>autoGenerate=&#8221;true&#8221;</em> attribute specifies that you want GAE to take both indexes in this file as well as in the <em>datastore-indexes-auto.xml</em> file into account when you are uploading your app. This attribute is important because if a user tries to navigate to a page where a query is executed for which you have no index, the page will fail to load and the index will only then begin to be generated. This process takes some time and user experience will suffer greatly.</p>
+<p>If you wish to simulate the behavior of the production environment, you can set <em>autoGenerate</em> to &#8220;false&#8221; in your <em>datastore-indexes.xml</em> file and when a query can&#8217;t be satisfied on your development server, a DatastoreNeedIndexException will be thrown. The exception will also list both the minimal index and the index it would have auto-generated. For a more in-depth discussion of index selection, see <a class="reference external" href="https://developers.google.com/appengine/articles/indexselection">this article</a>.</p>
+</div>
+<div class="section" id="the-deployment-descriptor">
+<h3>The Deployment Descriptor<a class="headerlink" href="#the-deployment-descriptor" title="Permalink to this headline">¶</a></h3>
+<p>The deployment descriptor file for this code example looks like this:</p>
+<div class="highlight-python"><pre>&lt;web-app xmlns="http://java.sun.com/xml/ns/javaee" version="2.5"&gt;
+    &lt;servlet&gt;
+        &lt;servlet-name&gt;sign&lt;/servlet-name&gt;
+        &lt;servlet-class&gt;guestbook.SignGuestbookServlet&lt;/servlet-class&gt;
+    &lt;/servlet&gt;
+    &lt;servlet-mapping&gt;
+        &lt;servlet-name&gt;sign&lt;/servlet-name&gt;
+        &lt;url-pattern&gt;/sign&lt;/url-pattern&gt;
+    &lt;/servlet-mapping&gt;
+    &lt;welcome-file-list&gt;
+        &lt;welcome-file&gt;guestbook.jsp&lt;/welcome-file&gt;
+    &lt;/welcome-file-list&gt;
+&lt;/web-app&gt;</pre>
+</div>
+<p>Notice that the welcome file is not a servlet, but a JSP file. More on that in the next section.</p>
+</div>
+<div class="section" id="creating-the-user-interface">
+<h3>Creating the User Interface<a class="headerlink" href="#creating-the-user-interface" title="Permalink to this headline">¶</a></h3>
+<p>The user interface for this code example is created in a JSP file to avoid having the servlet code get too messy and to introduce more modularity. The file, named <em>guestbook.jsp</em>, looks like this:</p>
+<div class="highlight-python"><pre>&lt;%@ page contentType="text/html;charset=UTF-8" language="java" %&gt;
+&lt;%@ page import="java.util.List" %&gt;
+&lt;%@ page import="com.google.appengine.api.users.User" %&gt;
+&lt;%@ page import="com.google.appengine.api.users.UserService" %&gt;
+&lt;%@ page import="com.google.appengine.api.users.UserServiceFactory" %&gt;
+&lt;%@ page import="com.google.appengine.api.datastore.DatastoreServiceFactory" %&gt;
+&lt;%@ page import="com.google.appengine.api.datastore.DatastoreService" %&gt;
+&lt;%@ page import="com.google.appengine.api.datastore.Query" %&gt;
+&lt;%@ page import="com.google.appengine.api.datastore.Entity" %&gt;
+&lt;%@ page import="com.google.appengine.api.datastore.FetchOptions" %&gt;
+&lt;%@ page import="com.google.appengine.api.datastore.Key" %&gt;
+&lt;%@ page import="com.google.appengine.api.datastore.KeyFactory" %&gt;
+&lt;%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;link type="text/css" rel="stylesheet" href="/stylesheets/main.css" /&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+
+    &lt;%
+      String guestbookName = request.getParameter("guestbookName");
+      if (guestbookName == null) {
+        guestbookName = "default";
+      }
+      pageContext.setAttribute("guestbookName", guestbookName);
+
+      UserService userService = UserServiceFactory.getUserService();
+      User user = userService.getCurrentUser();
+      if (user != null) {
+        pageContext.setAttribute("user", user);
+    %&gt;
+        &lt;p&gt;Hello, ${fn:escapeXml(user.nickname)}! (You can &lt;a href="&lt;%= userService.createLogoutURL(request.getRequestURI()) %&gt;"&gt;sign out&lt;/a&gt;.)&lt;/p&gt;
+    &lt;%
+      } else {
+    %&gt;
+        &lt;p&gt;Hello! &lt;a href="&lt;%= userService.createLoginURL(request.getRequestURI()) %&gt;"&gt;Sign in&lt;/a&gt; to include your name with greetings you post.&lt;/p&gt;
+    &lt;%
+      }
+    %&gt;
+
+    &lt;%
+      DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+      Key guestbookKey = KeyFactory.createKey("Guestbook", guestbookName);
+
+      // Run an ancestor query to ensure we see the most up-to-date
+      // view of the Greetings belonging to the selected Guestbook.
+      Query query = new Query("Greeting", guestbookKey).addSort("date", Query.SortDirection.DESCENDING);
+      List&lt;Entity&gt; greetings = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5));
+      if (greetings.isEmpty()) {
+    %&gt;
+        &lt;p&gt;Guestbook '${fn:escapeXml(guestbookName)}' has no messages.&lt;/p&gt;
+    &lt;%
+      } else {
+    %&gt;
+        &lt;p&gt;Messages in Guestbook '${fn:escapeXml(guestbookName)}'.&lt;/p&gt;
+    &lt;%
+        for (Entity greeting : greetings) {
+          pageContext.setAttribute("greeting_content", greeting.getProperty("content"));
+          if (greeting.getProperty("user") == null) {
+    %&gt;
+            &lt;p&gt;An anonymous person wrote:&lt;/p&gt;
+    &lt;%
+          } else {
+            pageContext.setAttribute("greeting_user", greeting.getProperty("user"));
+    %&gt;
+            &lt;p&gt;&lt;b&gt;${fn:escapeXml(greeting_user.nickname)}&lt;/b&gt; wrote:&lt;/p&gt;
+    &lt;%
+          }
+    %&gt;
+          &lt;blockquote&gt;${fn:escapeXml(greeting_content)}&lt;/blockquote&gt;
+    &lt;%
+        }
+      }
+    %&gt;
+
+    &lt;form action="/sign" method="post"&gt;
+      &lt;div&gt;&lt;textarea name="content" rows="3" cols="60"&gt;&lt;/textarea&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;input type="submit" value="Post Greeting" /&gt;&lt;/div&gt;
+      &lt;input type="hidden" name="guestbookName" value="${fn:escapeXml(guestbookName)}"/&gt;
+    &lt;/form&gt;
+
+    &lt;form action="/guestbook.jsp" method="get"&gt;
+      &lt;div&gt;&lt;input type="text" name="guestbookName" value="${fn:escapeXml(guestbookName)}"/&gt;&lt;/div&gt;
+        &lt;div&gt;&lt;input type="submit" value="Switch Guestbook"/&gt;&lt;/div&gt;
+    &lt;/form&gt;
+
+  &lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<p>The Datastore query executed to retrieve all of the entries in a guestbook requires a Datastore index that you have already seen in the <a class="reference internal" href="#indexing">indexing</a> section. The query is executed with the call to prepare() and the result is filtered to only include the 5 most recent entries, which are then displayed on the webpage.</p>
+</div>
+<div class="section" id="creating-new-guestbook-entries">
+<h3>Creating New Guestbook Entries<a class="headerlink" href="#creating-new-guestbook-entries" title="Permalink to this headline">¶</a></h3>
+<p>The sign servlet is where new guestbook entries are created. The code for the sign servlet looks like this:</p>
+<div class="highlight-python"><pre>package guestbook
+
+import java.util.logging.Logger
+import java.util.Date
+import javax.servlet.http.{HttpServlet, HttpServletRequest =&gt; HSReq, HttpServletResponse =&gt; HSResp}
+import com.google.appengine.api.users.{User, UserService =&gt; UServ, UserServiceFactory =&gt; UServFactory}
+import com.google.appengine.api.datastore.{DatastoreService, DatastoreServiceFactory =&gt; DSFactory, Entity, Key, KeyFactory}
+
+class SignGuestbookServlet extends HttpServlet
+{
+    val log = Logger.getLogger("SignGuestbookServlet")
+
+    override def doPost( req : HSReq, resp : HSResp)
+    {
+      val userService = UServFactory.getUserService()
+      val user = userService.getCurrentUser()
+
+      val guestbookName = req.getParameter("guestbookName")
+      val guestbookKey = KeyFactory.createKey("Guestbook",guestbookName)
+      val content = req.getParameter("content")
+      val date = new Date()
+
+      val greeting = new Entity("Greeting",guestbookKey)
+      greeting.setProperty("user",user)
+      greeting.setProperty("date",date)
+      greeting.setProperty("content",content)
+
+      val datastore = DSFactory.getDatastoreService()
+      datastore.put(greeting)
+                log.info("Just created new entry in guestbook: " + content + "\nfrom user: " + user)
+
+      resp.sendRedirect("/guestbook.jsp?guestbookName=" + guestbookName)
+    }
+}</pre>
+</div>
+<p>Here you can see a new entity, a &#8220;Greeting&#8221; entity, is created using the key specific to the name of the guestbook that the user posted in. The name of the user, the current date and time, and the content of the post are all stored with the entity and a message is logged to the INFO level displaying the content of the message and the name of the user that posted it.</p>
+</div>
+</div>
+<div class="section" id="using-the-google-cloud-sql-api">
+<h2>Using the Google Cloud SQL API<a class="headerlink" href="#using-the-google-cloud-sql-api" title="Permalink to this headline">¶</a></h2>
+<p>Google Cloud SQL is a service that lets you locate your MySQL Databases in Google&#8217;s cloud. GAE support of Google Cloud SQL is currently experimental, but you can currently try it out for free until next month (June 2013). If you need a relational database for your GAE app, Google Cloud SQL is your answer. There is one key difference to note from the other database options when you are using the Google Cloud SQL service: you must have your own local MySQL instance configured in order to mirror the Google Cloud SQL service during development.</p>
+<p>To set up your app to use the Google Cloud SQL service, you need to follow the instructions in the first two sections of <a class="reference external" href="https://developers.google.com/appengine/docs/java/cloud-sql/developers-guide">this Google documentation</a>. You also need to make sure you have <a class="reference external" href="http://dev.mysql.com/downloads/connector/j/">downloaded the mysql-connector-java.jar</a> and placed it inside of your <em>appengine-java-sdk/lib/impl</em> directory.</p>
+</div>
+<div class="section" id="using-the-google-cloud-storage-api">
+<h2>Using the Google Cloud Storage API<a class="headerlink" href="#using-the-google-cloud-storage-api" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Storing Data</a><ul>
+<li><a class="reference internal" href="#using-the-low-level-datastore-api">Using the Low-Level Datastore API</a><ul>
+<li><a class="reference internal" href="#a-note-about-indexing">A Note About Indexing</a></li>
+<li><a class="reference internal" href="#the-deployment-descriptor">The Deployment Descriptor</a></li>
+<li><a class="reference internal" href="#creating-the-user-interface">Creating the User Interface</a></li>
+<li><a class="reference internal" href="#creating-new-guestbook-entries">Creating New Guestbook Entries</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-the-google-cloud-sql-api">Using the Google Cloud SQL API</a></li>
+<li><a class="reference internal" href="#using-the-google-cloud-storage-api">Using the Google Cloud Storage API</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="helloScala.html"
+                        title="previous chapter">Hello, Scala!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/storingData.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="helloScala.html" title="Hello, Scala!"
+             >previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Chris Horuk.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

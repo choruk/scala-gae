@@ -1,0 +1,160 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Installation &mdash; ScalaOnGAE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="ScalaOnGAE 1.0 documentation" href="index.html" />
+    <link rel="next" title="Configuring Ant" href="configuringAnt.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="configuringAnt.html" title="Configuring Ant"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="introduction.html" title="Introduction"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>To be certain that anyone can easily follow along with this documentation, I will first discuss the installation and setup required. Some of this is required to use Google App Engine (GAE), while some of it is required because of the specific design decisions that I made (i.e. using Scala and Ant).</p>
+<div class="section" id="google-app-engine-setup">
+<h2>Google App Engine Setup<a class="headerlink" href="#google-app-engine-setup" title="Permalink to this headline">¶</a></h2>
+<p>First, I will discuss the setup required to use the Java implementation of GAE.</p>
+<ol class="arabic simple">
+<li>The most obvious part of this setup process is to ensure that you have the <a class="reference external" href="http://java.sun.com/javase/downloads/index.jsp">latest Java Developer Kit (JDK) installed</a>. I will be using Java 7 throughout, but you can get away with Java 6 if absolutely necessary.</li>
+</ol>
+<ol class="arabic simple" start="2">
+<li>The next most obvious step is to download the <a class="reference external" href="https://developers.google.com/appengine/downloads#Google_App_Engine_SDK_for_Java">latest GAE SDK</a>. I am using version 1.7.7 of the GAE Java SDK, but there might be a newer one out if you are reading this in the future (hello from the past!). You&#8217;ll find plenty of information provided by Google if you are having trouble with this step, but once you download the GAE SDK you should have a top level directory of the form &#8220;appengine-java-sdk-x.x.x&#8221; where &#8220;x.x.x&#8221; will be the SDK version number. For clarity, just rename this directory to &#8220;appengine-java-sdk&#8221; as this is how I will refer to it.</li>
+</ol>
+<ol class="arabic simple" start="3">
+<li>This step introduces the first point where you have multiple options to choose from. To facilitate the development process when working with GAE, a project configuration tool of some sort is needed. For those of you who like using IDEs, Eclipse has incredible support for GAE (see <a class="reference external" href="https://developers.google.com/appengine/docs/java/tools/eclipse">Google Plugin for Eclipse</a>). I chose to go a different route and use a command line configuration tool called <a class="reference external" href="https://ant.apache.org">Apache Ant</a>. You can find some information about how to install Ant on their website, but I will discuss this in some detail <a class="reference internal" href="#later">later</a> as well.</li>
+</ol>
+</div>
+<div class="section" id="scala-setup">
+<h2>Scala Setup<a class="headerlink" href="#scala-setup" title="Permalink to this headline">¶</a></h2>
+<p>As Scala will be used for much of the programming throughout this documentation, you will of course need to setup Scala. For all of you OS X users out there, this setup should be hilariously easy. Go get <a class="reference external" href="http://mxcl.github.io/homebrew/">Homebrew</a> if you don&#8217;t have it yet and then simply type <em>brew install scala</em> at a Terminal prompt to get the latest stable release. As of this writing, the latest stable release is version 2.10.1, which is what I will be using.</p>
+<p>For those of you not using OS X (what are you doing with your life?), you can get the latest stable release of Scala <a class="reference external" href="http://www.scala-lang.org/downloads">here</a>.</p>
+</div>
+<div class="section" id="ant-setup">
+<h2>Ant Setup<a class="headerlink" href="#ant-setup" title="Permalink to this headline">¶</a></h2>
+<p id="later">Apache Ant is a really useful command line tool that allows you to accomplish the repetitive tasks involved with developing and deploying quickly and efficiently.</p>
+<ol class="arabic simple">
+<li>To use Apache Ant you must have a Java environment installed, but you need this for GAE as well so you should already have it, right?</li>
+<li>Next, <a class="reference external" href="https://ant.apache.org/bindownload.cgi">download one of the ant binaries</a> and uncompress the file into a folder where you wish Ant to reside.</li>
+</ol>
+<ol class="arabic" start="3">
+<li><p class="first">Once you have found a home for Ant, you need to set an environment variable called ANT_HOME to the directory where Ant resides. You should also have an environment variable called JAVA_HOME and SCALA_HOME at this point as well.</p>
+<blockquote>
+<div><p><strong>Note:</strong> If you are using OS X, there is a very easy way to set these environment variables that requires administrator privileges. You can set them all in the file <em>/etc/launchd.conf</em> in the form &#8220;setenv ANT_HOME /path/to/apache-ant-x.x.x&#8221; on separate lines. After saving this file, simply enter <em>grep -E &#8220;^setenv&#8221; /etc/launchd.conf | xargs -t -L 1 launchctl</em> at the Terminal prompt and restart the Terminal app. Now when you enter the command <em>export</em> with no options, you should see your new environment variables listed among others.</p>
+</div></blockquote>
+</li>
+<li><p class="first">Finally, you need to add the Ant bin to your PATH.</p>
+<blockquote>
+<div><p><strong>Note:</strong> On OS X, this can be done by adding &#8220;${ANT_HOME}/bin&#8221; to the <em>/etc/paths</em> file.</p>
+</div></blockquote>
+</li>
+</ol>
+<p>If you are successful, <em>ant -version</em> should return the version of Ant that you have installed. I am using version 1.9.0 because this version is the most recent stable release as of this writing.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Installation</a><ul>
+<li><a class="reference internal" href="#google-app-engine-setup">Google App Engine Setup</a></li>
+<li><a class="reference internal" href="#scala-setup">Scala Setup</a></li>
+<li><a class="reference internal" href="#ant-setup">Ant Setup</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="introduction.html"
+                        title="previous chapter">Introduction</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="configuringAnt.html"
+                        title="next chapter">Configuring Ant</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/installation.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="configuringAnt.html" title="Configuring Ant"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="introduction.html" title="Introduction"
+             >previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Chris Horuk.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

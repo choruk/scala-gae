@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Configuring Ant &mdash; ScalaOnGAE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="ScalaOnGAE 1.0 documentation" href="index.html" />
+    <link rel="next" title="Hello, Scala!" href="helloScala.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="helloScala.html" title="Hello, Scala!"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="configuring-ant">
+<h1>Configuring Ant<a class="headerlink" href="#configuring-ant" title="Permalink to this headline">¶</a></h1>
+<p>Google provides a lot of information about how to <a class="reference external" href="https://developers.google.com/appengine/docs/java/tools/ant">configure Ant for use with Java</a>, but most of this information does not apply if you wish to use Ant with Scala. This section will explain how to configure Ant for use with Scala and will repeat some of the information from the Google docs that still applies for Scala.</p>
+<div class="section" id="initial-configurations">
+<h2>Initial Configurations<a class="headerlink" href="#initial-configurations" title="Permalink to this headline">¶</a></h2>
+<p>The <em>build.xml</em> file is used to configure Ant and a new <em>build.xml</em> file should be placed in the top level directory of each project you wish to use it for. There are a number of tasks you can accomplish with Ant, but to use it with GAE there are some initial configurations you need to do.</p>
+<div class="section" id="import-the-gae-ant-macros">
+<h3>Import the GAE Ant Macros<a class="headerlink" href="#import-the-gae-ant-macros" title="Permalink to this headline">¶</a></h3>
+<p>There are a number of GAE Ant macros that allow you to execute GAE commands through Ant. In order to use these macros, you must tell Ant where to look for them, which can be accomplished with the following two lines:</p>
+<p><em>&lt;property name=&#8221;sdk.dir&#8221; location=&#8221;../appengine-java-sdk&#8221; /&gt;</em></p>
+<p><em>&lt;import file=&#8221;${sdk.dir}/config/user/ant-macros.xml&#8221; /&gt;</em></p>
+<blockquote>
+<div><strong>Note:</strong> This assumes that you have placed the GAE Java SDK in the directory which contains your project&#8217;s top-level directory.</div></blockquote>
+</div>
+<div class="section" id="set-the-project-classpath">
+<h3>Set the Project CLASSPATH<a class="headerlink" href="#set-the-project-classpath" title="Permalink to this headline">¶</a></h3>
+<p>To set the CLASSPATH that Ant will use when executing tasks, you simply need to create a path element with an id of &#8220;project.classpath&#8221;. You typically include any extra JARs that your project needs in the <em>war/WEB-INF/lib</em> directory and thus your CLASSPATH will need to include those JARs as well as the GAE SDK JARs.</p>
+<p><em>&lt;path id=&#8221;project.classpath&#8221;&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;pathelement path=&#8221;${build.dir}&#8221; /&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;fileset dir=&#8221;${lib.dir}&#8221;&gt;</em></p>
+<blockquote>
+<div><em>&lt;include name=&#8221;**/*.jar&#8221; /&gt;</em></div></blockquote>
+<p><em>&lt;/fileset&gt;</em></p>
+<p><em>&lt;fileset dir=&#8221;${sdk.dir}/lib&#8221;&gt;</em></p>
+<blockquote>
+<div><em>&lt;include name=&#8221;shared/**/*.jar&#8221; /&gt;</em></div></blockquote>
+<p><em>&lt;/fileset&gt;</em></p>
+</div></blockquote>
+</div></blockquote>
+<p><em>&lt;/path&gt;</em></p>
+<blockquote>
+<div><strong>Note:</strong> All of the Ant examples here will use properties defined earlier in the <em>build.xml</em> file. Refer to the complete <em>build.xml</em> sample files included in the github samples for clarity.</div></blockquote>
+</div>
+</div>
+<div class="section" id="creating-targets">
+<h2>Creating Targets<a class="headerlink" href="#creating-targets" title="Permalink to this headline">¶</a></h2>
+<p>If you have worked with Ant before then you already know all about targets. For those that haven&#8217;t used Ant, targets are, in a nutshell, how you specify the tasks that Ant can execute. You can create them with the <em>&lt;target name=&#8221;&#8220;&gt;</em> directive and add dependencies so that certain targets are always executed. Then you can execute them at the command line with the format <em>ant targetName</em>, where targetName is the name you specify in the <em>build.xml</em> file.</p>
+<div class="section" id="the-scala-init-target">
+<h3>The Scala Init Target<a class="headerlink" href="#the-scala-init-target" title="Permalink to this headline">¶</a></h3>
+<p>To be able to use Scala commands within Ant, you need an initializer target that will load up all of the Scala commands that Ant can use. In all of the <em>build.xml</em> files, this is the target with the name &#8220;init&#8221;. Once this target is created, you can use Scala commands within Ant by making the target that uses the Scala command depend on the &#8220;init&#8221; target. For clarity, the &#8220;init&#8221; target is displayed below.</p>
+<p><em>&lt;target name=&#8221;init&#8221;&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;path id=&#8221;build.classpath&#8221;&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;pathelement location=&#8221;${scala-library.jar}&#8221; /&gt;</em></p>
+<p><em>&lt;pathelement location=&#8221;${build.dir}&#8221; /&gt;</em></p>
+</div></blockquote>
+<p><em>&lt;/path&gt;</em></p>
+<p><em>&lt;taskdef resource=&#8221;scala/tools/ant/antlib.xml&#8221;&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;classpath&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;pathelement location=&#8221;${scala-compiler.jar}&#8221; /&gt;</em></p>
+<p><em>&lt;pathelement location=&#8221;${scala-library.jar}&#8221; /&gt;</em></p>
+<p><em>&lt;pathelement location=&#8221;${scala-reflect.jar}&#8221; /&gt;</em></p>
+</div></blockquote>
+<p><em>&lt;/classpath&gt;</em></p>
+</div></blockquote>
+<p><em>&lt;/taskdef&gt;</em></p>
+</div></blockquote>
+<p><em>&lt;/target&gt;</em></p>
+</div>
+<div class="section" id="a-scala-compile-target">
+<h3>A Scala Compile Target<a class="headerlink" href="#a-scala-compile-target" title="Permalink to this headline">¶</a></h3>
+<p>One target that clearly must depend on &#8220;init&#8221; is the &#8220;compile&#8221; target, as it will need to use the <em>scalac</em> command in order to compile the <em>.scala</em> files. A sample &#8220;compile&#8221; target might look like the following:</p>
+<p><em>&lt;target name=&#8221;compile&#8221; depends=&#8221;copyjars, init&#8221; description=&#8221;Compiles Scala source and copies other source files to the WAR.&#8221;&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;mkdir dir=&#8221;${build.dir}&#8221; /&gt;</em></p>
+<p><em>&lt;copy todir=&#8221;${build.dir}&#8221;&gt;</em></p>
+<blockquote>
+<div><p><em>&lt;fileset dir=&#8221;${src.dir}&#8221;&gt;</em></p>
+<blockquote>
+<div><em>&lt;exclude name=&#8221;**/*.scala&#8221; /&gt;</em></div></blockquote>
+<p><em>&lt;/fileset&gt;</em></p>
+</div></blockquote>
+<p><em>&lt;/copy&gt;</em></p>
+<p><em>&lt;scalac srcdir=&#8221;${src.dir}&#8221; destdir=&#8221;${build.dir}&#8221; classpathref=&#8221;project.classpath&#8221; /&gt;</em></p>
+</div></blockquote>
+<p><em>&lt;/target&gt;</em></p>
+<blockquote>
+<div><strong>Note:</strong> The &#8220;copyjars&#8221; target simply copies all of the JARs that GAE will need when executing your application. Refer to the complete <em>build.xml</em> sample files included in the github samples for clarity.</div></blockquote>
+</div>
+<div class="section" id="a-target-for-starting-the-development-server">
+<h3>A Target for Starting the Development Server<a class="headerlink" href="#a-target-for-starting-the-development-server" title="Permalink to this headline">¶</a></h3>
+<p>Here&#8217;s where those GAE Ant macros that we imported are going to come in handy. A common workflow when developing is to make some changes, ensure that the files all still compile and then finally ensure that they behave as expected when running. You can address this entire workflow with one command at the Terminal prompt using the &#8220;runserver&#8221; target displayed below, i.e. <em>ant runserver</em>. Because it depends on the &#8220;compile&#8221; target, when you execute the &#8220;runserver&#8221; target, all actions associated with the &#8220;compile&#8221; target will be executed first and just like that you can compile all of your Scala code and launch the GAE development server.</p>
+<p><em>&lt;target name=&#8221;runserver&#8221; depends=&#8221;compile&#8221; description=&#8221;Starts the development server.&#8221;&gt;</em></p>
+<blockquote>
+<div><em>&lt;dev_appserver war=&#8221;war&#8221; port=&#8221;8888&#8221; /&gt;</em></div></blockquote>
+<p><em>&lt;/target&gt;</em></p>
+</div>
+<div class="section" id="other-targets">
+<h3>Other Targets<a class="headerlink" href="#other-targets" title="Permalink to this headline">¶</a></h3>
+<p>There are a number of other targets that you can define within the <em>build.xml</em> file to facilitate development. Take a look at the complete <em>build.xml</em> sample files included in the github samples for more ideas.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Configuring Ant</a><ul>
+<li><a class="reference internal" href="#initial-configurations">Initial Configurations</a><ul>
+<li><a class="reference internal" href="#import-the-gae-ant-macros">Import the GAE Ant Macros</a></li>
+<li><a class="reference internal" href="#set-the-project-classpath">Set the Project CLASSPATH</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#creating-targets">Creating Targets</a><ul>
+<li><a class="reference internal" href="#the-scala-init-target">The Scala Init Target</a></li>
+<li><a class="reference internal" href="#a-scala-compile-target">A Scala Compile Target</a></li>
+<li><a class="reference internal" href="#a-target-for-starting-the-development-server">A Target for Starting the Development Server</a></li>
+<li><a class="reference internal" href="#other-targets">Other Targets</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="installation.html"
+                        title="previous chapter">Installation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="helloScala.html"
+                        title="next chapter">Hello, Scala!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/configuringAnt.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="helloScala.html" title="Hello, Scala!"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             >previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Chris Horuk.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

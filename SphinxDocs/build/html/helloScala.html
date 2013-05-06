@@ -1,0 +1,193 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Hello, Scala! &mdash; ScalaOnGAE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="ScalaOnGAE 1.0 documentation" href="index.html" />
+    <link rel="next" title="Storing Data" href="storingData.html" />
+    <link rel="prev" title="Getting Acquainted With Google App Engine" href="gettingAcquainted.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="storingData.html" title="Storing Data"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="gettingAcquainted.html" title="Getting Acquainted With Google App Engine"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="hello-scala">
+<h1>Hello, Scala!<a class="headerlink" href="#hello-scala" title="Permalink to this headline">¶</a></h1>
+<p>Now that you have completed the necessary installations and other setup tasks, you are ready to start coding! This first code example is the obligatory Hello, World! program with a small addition. This addition involves using the Google Users service to allow visitors to sign in with a Google account.</p>
+<p>In this code example, you will learn how to:</p>
+<ul class="simple">
+<li>Write a simple servlet in Scala to display a webpage.</li>
+<li>Map a Scala servlet to a URL for use by Google App Engine.</li>
+<li>Use the Google Users service to allow users to sign in with a Google account.</li>
+</ul>
+<div class="section" id="the-configuration-code">
+<h2>The Configuration Code<a class="headerlink" href="#the-configuration-code" title="Permalink to this headline">¶</a></h2>
+<p>First things first, let&#8217;s set up the deployment descriptor and app config descriptor files so that we can test our app as we go. The deployment descriptor should look like this:</p>
+<div class="highlight-python"><pre>&lt;web-app xmlns="http://java.sun.com/xml/ns/javaee" version="2.5"&gt;
+    &lt;servlet&gt;
+        &lt;servlet-name&gt;helloworld&lt;/servlet-name&gt;
+        &lt;servlet-class&gt;helloworld.HelloWorldServlet&lt;/servlet-class&gt;
+    &lt;/servlet&gt;
+    &lt;servlet-mapping&gt;
+        &lt;servlet-name&gt;helloworld&lt;/servlet-name&gt;
+        &lt;url-pattern&gt;/helloworld&lt;/url-pattern&gt;
+    &lt;/servlet-mapping&gt;
+    &lt;welcome-file-list&gt;
+        &lt;welcome-file&gt;helloworld&lt;/welcome-file&gt;
+    &lt;/welcome-file-list&gt;
+&lt;/web-app&gt;</pre>
+</div>
+<p>This code maps the servlet class <em>helloworld.HelloWorldServlet</em> to the servlet name <em>helloworld</em> and subsequently maps that servlet name to the <em>/helloworld</em> URL. Similarly, by placing the servlet&#8217;s name in the welcome file list, the servlet will be mapped to the root URL as well.</p>
+<p>The other file we need is the app config descriptor, which should look like this:</p>
+<div class="highlight-python"><pre>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;appengine-web-app xmlns="http://appengine.google.com/ns/1.0"&gt;
+    &lt;application&gt;&lt;/application&gt;
+    &lt;version&gt;1&lt;/version&gt;
+    &lt;threadsafe&gt;true&lt;/threadsafe&gt;
+&lt;/appengine-web-app&gt;</pre>
+</div>
+<p><strong>Note:</strong> The <em>&lt;application&gt;</em> tag is used to inform GAE of the app&#8217;s registered ID. Since this app will only be used for testing purposes, it will not have an app ID.</p>
+</div>
+<div class="section" id="the-servlet-code">
+<h2>The Servlet Code<a class="headerlink" href="#the-servlet-code" title="Permalink to this headline">¶</a></h2>
+<p>First things first, let&#8217;s write a simple Scala servlet that will display a webpage with some static content. Create a <em>HelloWorldServlet.scala</em> file and add the following code:</p>
+<div class="highlight-python"><pre>package helloworld
+
+import javax.servlet.http.{HttpServlet, HttpServletRequest =&gt; HSReq, HttpServletResponse =&gt; HSResp}
+
+class HelloWorldServlet extends HttpServlet
+{
+    override def doGet(req : HSReq, resp : HSResp) =
+    {
+        resp.setContentType("text/plain")
+        resp.getWriter().println("Hello World, from Scala")
+    }
+}</pre>
+</div>
+<p>This simple servlet will display a webpage with the text &#8220;Hello World, from Scala&#8221; on it. Deploy your app to the development server and load up the app in your web browser to confirm.</p>
+<p>Now for the addition. The Google Users service API provides an interface to allow users to sign in with a Google account, as well as for developers to interact with the current user. The following import statement is needed to use the Google Users service:</p>
+<div class="highlight-python"><pre>import com.google.appengine.api.users.{User, UserService =&gt; UServ, UserServiceFactory =&gt; UServFactory}</pre>
+</div>
+<p>Once you have added this import statement to your <em>HelloWorldServlet.scala</em> file, change the <em>doGet</em> method to look like the following:</p>
+<div class="highlight-python"><pre>    override def doGet(req : HSReq, resp : HSResp) =
+{
+    val userService = UServFactory.getUserService()
+    val user = userService.getCurrentUser()
+
+    if (user != null)
+    {
+        resp.setContentType("text/plain")
+        resp.getWriter().println("Hello, " + user.getNickname() + ", from Scala")
+    }
+    else
+        resp.sendRedirect(userService.createLoginURL(req.getRequestURI()))
+}</pre>
+</div>
+<p>Now, when someone visits the hello world app&#8217;s webpage, they will either be prompted to sign in to a Google account or a welcome message will be displayed, tailored to their Google account&#8217;s nickname.</p>
+<blockquote>
+<div><strong>Note:</strong> On the development server, the Google Users service simulates the expected behavior by simply allowing you to sign in with any email address you wish without having to enter a password. This allows you to easily test your app when developing.</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Hello, Scala!</a><ul>
+<li><a class="reference internal" href="#the-configuration-code">The Configuration Code</a></li>
+<li><a class="reference internal" href="#the-servlet-code">The Servlet Code</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="gettingAcquainted.html"
+                        title="previous chapter">Getting Acquainted With Google App Engine</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="storingData.html"
+                        title="next chapter">Storing Data</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/helloScala.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="storingData.html" title="Storing Data"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="gettingAcquainted.html" title="Getting Acquainted With Google App Engine"
+             >previous</a> |</li>
+        <li><a href="index.html">ScalaOnGAE 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Chris Horuk.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

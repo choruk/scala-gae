@@ -1,0 +1,233 @@
+==============
+Storing Data
+==============
+
+The chief concern of most web apps, and really any app in general, is how and where to store the app's data. With GAE, you have three different options: a `basic schemaless object datastore`_, a `cloud SQL datastore`_, and an `advanced object datastore`_. The basic schemaless object datastore is where most will start and provides a very scalable option with a choice between using JDO, JPA or a low-level Datastore API. For a more advanced object datastore, Google Cloud Storage allows developers to store their data directly on Google's infrastructure with almost no limit on individual object size and a number of other amazing features. If you need a relational database, the Google Cloud SQL service is exactly what you want: a relational database in the cloud.
+
+In the following sections, I will give examples on how to use each of the three different data storing options with Scala.
+
+.. _basic schemaless object datastore: https://developers.google.com/appengine/docs/java/datastore/overview
+.. _cloud SQL datastore: https://developers.google.com/cloud-sql/
+.. _advanced object datastore: https://developers.google.com/appengine/docs/java/googlestorage/
+
+Using the Low-Level Datastore API
+---------------------------------
+
+The low-level Datastore API gives you access to App Engine's schemaless High Replication Datastore. The Datastore holds objects, referred to as entities, each with one or more properties. Entities are grouped by kind, but two entities of the same kind don't need to have the same properties; the grouping is merely used for the purpose of queries. To retrieve information from the Datastore, you must construct a query with filter parameters to configure how the query's results are sorted. Every query needs one or more Datastore indexes, which are just tables containing entities in an order specified by the index's properties.
+
+The sections that follow are part of a code example displaying how to:
+
+- Generate indexes to support your app's Datastore queries.
+- Use JSPs to create your apps interfaces.
+- Use the low-level Datastore API to create new entities and execute queries on those entities.
+
+.. _indexing:
+
+A Note About Indexing
+~~~~~~~~~~~~~~~~~~~~~
+
+Any interactions you have with your app while it is running on the development server will generate indexes automatically for you as needed. These indexes will be placed inside of a file named *datastore-indexes-auto.xml* inside of a directory named *appengine-generated* in your *war/WEB-INF* directory. You can also specify your own indexes inside of a file named *datastore-indexes.xml* that you must store directly in your *war/WEB-INF* directory. A simple example of this file follows:
+
+::
+
+	<datastore-indexes autoGenerate="true">
+
+	    <datastore-index kind="Greeting" ancestor="true">
+	        <property name="date" direction="desc"/>
+	    </datastore-index>
+
+	</datastore-indexes>
+
+The outer *<datastore-indexes>* tag is the wrapper you place around all of the indexes you wish to declare. The *autoGenerate="true"* attribute specifies that you want GAE to take both indexes in this file as well as in the *datastore-indexes-auto.xml* file into account when you are uploading your app. This attribute is important because if a user tries to navigate to a page where a query is executed for which you have no index, the page will fail to load and the index will only then begin to be generated. This process takes some time and user experience will suffer greatly.
+
+If you wish to simulate the behavior of the production environment, you can set *autoGenerate* to "false" in your *datastore-indexes.xml* file and when a query can't be satisfied on your development server, a DatastoreNeedIndexException will be thrown. The exception will also list both the minimal index and the index it would have auto-generated. For a more in-depth discussion of index selection, see `this article`_.
+
+.. _this article: https://developers.google.com/appengine/articles/indexselection
+
+The Deployment Descriptor
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The deployment descriptor file for this code example looks like this:
+
+::
+
+	<web-app xmlns="http://java.sun.com/xml/ns/javaee" version="2.5">
+	    <servlet>
+	        <servlet-name>sign</servlet-name>
+	        <servlet-class>guestbook.SignGuestbookServlet</servlet-class>
+	    </servlet>
+	    <servlet-mapping>
+	        <servlet-name>sign</servlet-name>
+	        <url-pattern>/sign</url-pattern>
+	    </servlet-mapping>
+	    <welcome-file-list>
+	        <welcome-file>guestbook.jsp</welcome-file>
+	    </welcome-file-list>
+	</web-app>
+
+Notice that the welcome file is not a servlet, but a JSP file. More on that in the next section.
+
+Creating the User Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The user interface for this code example is created in a JSP file to avoid having the servlet code get too messy and to introduce more modularity. The file, named *guestbook.jsp*, looks like this:
+
+::
+
+	<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+	<%@ page import="java.util.List" %>
+	<%@ page import="com.google.appengine.api.users.User" %>
+	<%@ page import="com.google.appengine.api.users.UserService" %>
+	<%@ page import="com.google.appengine.api.users.UserServiceFactory" %>
+	<%@ page import="com.google.appengine.api.datastore.DatastoreServiceFactory" %>
+	<%@ page import="com.google.appengine.api.datastore.DatastoreService" %>
+	<%@ page import="com.google.appengine.api.datastore.Query" %>
+	<%@ page import="com.google.appengine.api.datastore.Entity" %>
+	<%@ page import="com.google.appengine.api.datastore.FetchOptions" %>
+	<%@ page import="com.google.appengine.api.datastore.Key" %>
+	<%@ page import="com.google.appengine.api.datastore.KeyFactory" %>
+	<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
+	<html>
+	  <head>
+	    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+	  </head>
+
+	  <body>
+
+	    <%
+	      String guestbookName = request.getParameter("guestbookName");
+	      if (guestbookName == null) {
+	        guestbookName = "default";
+	      }
+	      pageContext.setAttribute("guestbookName", guestbookName);
+
+	      UserService userService = UserServiceFactory.getUserService();
+	      User user = userService.getCurrentUser();
+	      if (user != null) {
+	        pageContext.setAttribute("user", user);
+	    %>
+	        <p>Hello, ${fn:escapeXml(user.nickname)}! (You can <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">sign out</a>.)</p>
+	    <%
+	      } else {
+	    %>
+	        <p>Hello! <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a> to include your name with greetings you post.</p>
+	    <%
+	      }
+	    %>
+
+	    <%
+	      DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+	      Key guestbookKey = KeyFactory.createKey("Guestbook", guestbookName);
+
+	      // Run an ancestor query to ensure we see the most up-to-date
+	      // view of the Greetings belonging to the selected Guestbook.
+	      Query query = new Query("Greeting", guestbookKey).addSort("date", Query.SortDirection.DESCENDING);
+	      List<Entity> greetings = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5));
+	      if (greetings.isEmpty()) {
+	    %>
+	        <p>Guestbook '${fn:escapeXml(guestbookName)}' has no messages.</p>
+	    <%
+	      } else {
+	    %>
+	        <p>Messages in Guestbook '${fn:escapeXml(guestbookName)}'.</p>
+	    <%
+	        for (Entity greeting : greetings) {
+	          pageContext.setAttribute("greeting_content", greeting.getProperty("content"));
+	          if (greeting.getProperty("user") == null) {
+	    %>
+	            <p>An anonymous person wrote:</p>
+	    <%
+	          } else {
+	            pageContext.setAttribute("greeting_user", greeting.getProperty("user"));
+	    %>
+	            <p><b>${fn:escapeXml(greeting_user.nickname)}</b> wrote:</p>
+	    <%
+	          }
+	    %>
+	          <blockquote>${fn:escapeXml(greeting_content)}</blockquote>
+	    <%
+	        }
+	      }
+	    %>
+
+	    <form action="/sign" method="post">
+	      <div><textarea name="content" rows="3" cols="60"></textarea></div>
+	      <div><input type="submit" value="Post Greeting" /></div>
+	      <input type="hidden" name="guestbookName" value="${fn:escapeXml(guestbookName)}"/>
+	    </form>
+
+	    <form action="/guestbook.jsp" method="get">
+	      <div><input type="text" name="guestbookName" value="${fn:escapeXml(guestbookName)}"/></div>
+	    	<div><input type="submit" value="Switch Guestbook"/></div>
+	    </form>
+
+	  </body>
+	</html>
+
+The Datastore query executed to retrieve all of the entries in a guestbook requires a Datastore index that you have already seen in the indexing_ section. The query is executed with the call to prepare() and the result is filtered to only include the 5 most recent entries, which are then displayed on the webpage.
+
+Creating New Guestbook Entries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The sign servlet is where new guestbook entries are created. The code for the sign servlet looks like this:
+
+::
+
+	package guestbook
+
+	import java.util.logging.Logger
+	import java.util.Date
+	import javax.servlet.http.{HttpServlet, HttpServletRequest => HSReq, HttpServletResponse => HSResp}
+	import com.google.appengine.api.users.{User, UserService => UServ, UserServiceFactory => UServFactory}
+	import com.google.appengine.api.datastore.{DatastoreService, DatastoreServiceFactory => DSFactory, Entity, Key, KeyFactory}
+
+	class SignGuestbookServlet extends HttpServlet
+	{
+	    val log = Logger.getLogger("SignGuestbookServlet")
+
+	    override def doPost( req : HSReq, resp : HSResp)
+	    {
+	      val userService = UServFactory.getUserService()
+	      val user = userService.getCurrentUser()
+
+	      val guestbookName = req.getParameter("guestbookName")
+	      val guestbookKey = KeyFactory.createKey("Guestbook",guestbookName)
+	      val content = req.getParameter("content")
+	      val date = new Date()
+
+	      val greeting = new Entity("Greeting",guestbookKey)
+	      greeting.setProperty("user",user)
+	      greeting.setProperty("date",date)
+	      greeting.setProperty("content",content)
+
+	      val datastore = DSFactory.getDatastoreService()
+	      datastore.put(greeting)
+			log.info("Just created new entry in guestbook: " + content + "\nfrom user: " + user)
+
+	      resp.sendRedirect("/guestbook.jsp?guestbookName=" + guestbookName)
+	    }
+	}
+
+Here you can see a new entity, a "Greeting" entity, is created using the key specific to the name of the guestbook that the user posted in. The name of the user, the current date and time, and the content of the post are all stored with the entity and a message is logged to the INFO level displaying the content of the message and the name of the user that posted it.
+
+Using the Google Cloud SQL API
+------------------------------
+
+Google Cloud SQL is a service that lets you locate your MySQL Databases in Google's cloud. GAE support of Google Cloud SQL is currently experimental, but you can currently try it out for free until next month (June 2013). If you need a relational database for your GAE app, Google Cloud SQL is your answer. There is one key difference to note from the other database options when you are using the Google Cloud SQL service: you must have your own local MySQL instance configured in order to mirror the Google Cloud SQL service during development.
+
+To set up your app to use the Google Cloud SQL service, you need to follow the instructions in the first two sections of `this Google documentation`_. You also need to make sure you have `downloaded the mysql-connector-java.jar`_ and placed it inside of your *appengine-java-sdk/lib/impl* directory.
+
+.. _this Google documentation: https://developers.google.com/appengine/docs/java/cloud-sql/developers-guide
+.. _downloaded the mysql-connector-java.jar: http://dev.mysql.com/downloads/connector/j/
+
+Creating the User Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The user interface will once again be creating using JSPs for all the same reasons as before, however this time the app itself has changed slightly: users can no longer
+
+Creating New Guestbook Entries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using the Google Cloud Storage API
+----------------------------------

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>currentDocument</key>
+	<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/index.rst</string>
+	<key>documents</key>
+	<array>
+		<dict>
+			<key>filename</key>
+			<string>source/index.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-27T17:45:10Z</date>
+			<key>selected</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>source/introduction.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-26T20:30:17Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>source/installation.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-27T17:37:26Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>source/configuringAnt.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-27T17:39:08Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>source/helloScala.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-27T17:43:50Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>source/datastoreAPI.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-27T17:44:18Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>source/cloudSQL.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-27T17:44:48Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>source/cloudStorage.rst</string>
+			<key>lastUsed</key>
+			<date>2013-04-27T17:45:10Z</date>
+		</dict>
+	</array>
+	<key>fileHierarchyDrawerWidth</key>
+	<integer>200</integer>
+	<key>metaData</key>
+	<dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/cloudSQL.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>23</integer>
+				<key>line</key>
+				<integer>2</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/cloudStorage.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>27</integer>
+				<key>line</key>
+				<integer>2</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/configuringAnt.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>300</integer>
+				<key>line</key>
+				<integer>52</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/datastoreAPI.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>24</integer>
+				<key>line</key>
+				<integer>2</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/helloScala.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>0</integer>
+				<key>line</key>
+				<integer>4</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/index.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>15</integer>
+				<key>line</key>
+				<integer>19</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/installation.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>116</integer>
+				<key>line</key>
+				<integer>29</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/introduction.rst</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>219</integer>
+				<key>line</key>
+				<integer>6</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>openDocuments</key>
+	<array>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/index.rst</string>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/introduction.rst</string>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/installation.rst</string>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/configuringAnt.rst</string>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/helloScala.rst</string>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/datastoreAPI.rst</string>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/cloudSQL.rst</string>
+		<string>Documents/UCSB/cs263/Tech Investigation (GAE)/SphinxDocs/source/cloudStorage.rst</string>
+	</array>
+	<key>showFileHierarchyDrawer</key>
+	<true/>
+	<key>windowFrame</key>
+	<string>{{271, 4}, {1070, 1414}}</string>
+</dict>
+</plist>
