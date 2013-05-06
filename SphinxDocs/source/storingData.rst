@@ -395,3 +395,9 @@ Once again, we need to create a *Connection* object and use a *DriverManager* to
 Using the Google Cloud Storage API
 ----------------------------------
 
+The Google Cloud Storage service is very similar to the basic Datastore only with less limits placed due to the higher billing costs for using the service. The Google Cloud Storage service is also currently experimental with GAE, but there are a number of features that are not offered by the other datastore options. These include access control lists, OAuth 2.0 authentication and authorization, the ability to resume upload operations if they're interrupted, and a RESTful API among others. One important fact is that all objects created with the Google Cloud Storage service are immutable. To modify an existing object, you must overwrite it with a new object containing your changes.
+
+Before you can begin using the Google Cloud Storage APIs, you need to activate the Google Cloud Storage service for your app and enable billing. The detailed steps can be found in the prerequisites section of `this document`_.
+
+.. _this document: https://developers.google.com/appengine/docs/java/googlestorage/overview
+
