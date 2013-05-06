@@ -397,7 +397,288 @@ Using the Google Cloud Storage API
 
 The Google Cloud Storage service is very similar to the basic Datastore only with less limits placed due to the higher billing costs for using the service. The Google Cloud Storage service is also currently experimental with GAE, but there are a number of features that are not offered by the other datastore options. These include access control lists, OAuth 2.0 authentication and authorization, the ability to resume upload operations if they're interrupted, and a RESTful API among others. One important fact is that all objects created with the Google Cloud Storage service are immutable. To modify an existing object, you must overwrite it with a new object containing your changes.
 
-Before you can begin using the Google Cloud Storage APIs, you need to activate the Google Cloud Storage service for your app and enable billing. The detailed steps can be found in the prerequisites section of `this document`_.
+Before you can begin using the Google Cloud Storage APIs, you need to activate the Google Cloud Storage service for your app and enable billing. The detailed steps can be found in the prerequisites section of `this document`_. Once you have activated the service, you are ready to start using the Google Cloud Storage APIs.
 
 .. _this document: https://developers.google.com/appengine/docs/java/googlestorage/overview
 
+Creating the User Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As with the other two code examples, the user interface will be created using JSPs. The code looks like this:
+
+::
+
+	<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+	<%@ page import="java.util.List" %>
+	<%@ page import="com.google.appengine.api.users.User" %>
+	<%@ page import="com.google.appengine.api.users.UserService" %>
+	<%@ page import="com.google.appengine.api.users.UserServiceFactory" %>
+	<%@ page import="com.google.appengine.api.files.AppEngineFile" %>
+	<%@ page import="com.google.appengine.api.files.FileReadChannel" %>
+	<%@ page import="com.google.appengine.api.files.FileService" %>
+	<%@ page import="com.google.appengine.api.files.FileServiceFactory" %>
+	<%@ page import="com.google.appengine.api.files.FileWriteChannel" %>
+	<%@ page import="com.google.appengine.api.files.GSFileOptions.GSFileOptionsBuilder" %>
+	<%@ page import="java.net.URL" %>
+	<%@ page import="com.google.appengine.api.urlfetch.HTTPRequest" %>
+	<%@ page import="com.google.appengine.api.urlfetch.HTTPResponse" %>
+	<%@ page import="com.google.appengine.api.urlfetch.HTTPMethod" %>
+	<%@ page import="com.google.appengine.api.urlfetch.URLFetchService" %>
+	<%@ page import="com.google.appengine.api.urlfetch.URLFetchServiceFactory" %>
+	<%@ page import="org.w3c.dom.Document" %>
+	<%@ page import="org.w3c.dom.*" %>
+	<%@ page import="javax.xml.parsers.DocumentBuilderFactory" %>
+	<%@ page import="javax.xml.parsers.DocumentBuilder" %>
+	<%@ page import="java.io.BufferedReader"%>
+	<%@ page import="java.nio.channels.Channels" %>
+	<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
+	<html>
+	  <head>
+	    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+	  </head>
+
+	  <body>
+
+	    <%
+			String BUCKETNAME = "YOUR_BUCKET_NAME";
+	      String guestbookName = request.getParameter("guestbookName");
+	      if (guestbookName == null) {
+	        guestbookName = "default";
+	      }
+	      pageContext.setAttribute("guestbookName", guestbookName);
+
+	      UserService userService = UserServiceFactory.getUserService();
+	      User user = userService.getCurrentUser();
+	      if (user != null) {
+	        pageContext.setAttribute("user", user);
+	    %>
+	        <p>Hello, ${fn:escapeXml(user.nickname)}! (You can <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">sign out</a>.)</p>
+	    <%
+	      } else {
+	    %>
+	        <p>Hello! <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a> to include your name with greetings you post.</p>
+	    <%
+	      }
+	    %>
+
+	    <%
+
+				URL url = new URL("http://" + BUCKETNAME + ".storage.googleapis.com");
+
+				HTTPRequest bucketListRequest = new HTTPRequest(url, HTTPMethod.GET);
+				URLFetchService service = URLFetchServiceFactory.getURLFetchService();
+				HTTPResponse bucketLisResponse = service.fetch(bucketListRequest);
+				String content = new String(bucketLisResponse.getContent(), "UTF-8");
+
+				DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+				Document doc = docBuilder.parse(content);
+
+				// normalize text representation
+				doc.getDocumentElement().normalize();
+				NodeList listOfEntries = doc.getElementsByTagName("Contents");
+				if (listOfEntries.getLength() == 0)
+				{
+			%>
+			<p>Guestbook '${fn:escapeXml(guestbookName)}' has no messages.</p>
+			<%
+				}
+				else
+				{
+			%>
+			<p>Messages in Guestbook '${fn:escapeXml(guestbookName)}'.</p>
+			<%
+					for (int i=0; i<listOfEntries.getLength(); i++)
+					{
+						Node entryNode = listOfEntries.item(i);
+						if (entryNode.getNodeType() == Node.ELEMENT_NODE)
+						{
+							Element entryElement = (Element) entryNode;
+							String entryMessageKey = entryElement.getElementsByTagName("Key").item(0).getNodeValue().trim();
+							String fileName = "/gs/" + BUCKETNAME + "/" + entryMessageKey;
+							AppEngineFile readableFile = new AppEngineFile(fileName);
+							FileService fileService = FileServiceFactory.getFileService();
+							FileReadChannel readChannel = fileService.openReadChannel(readableFile, false);
+							BufferedReader reader = new BufferedReader(Channels.newReader(readChannel, "UTF-8"));
+							String line = reader.readLine();
+							pageContext.setAttribute("greeting_content", line);
+			%>
+			<blockquote>${fn:escapeXml(greeting_content)}</blockquote>
+			<%
+						}
+					}
+				}
+
+	    %>
+
+	    <form action="/sign" method="post">
+	      <div><textarea name="content" rows="3" cols="60"></textarea></div>
+	      <div><input type="submit" value="Post Greeting" /></div>
+	      <input type="hidden" name="guestbookName" value="${fn:escapeXml(guestbookName)}"/>
+	    </form>
+
+	    <form action="/guestbook.jsp" method="get">
+	      <div><input type="text" name="guestbookName" value="${fn:escapeXml(guestbookName)}"/></div>
+	    	<div><input type="submit" value="Switch Guestbook"/></div>
+	    </form>
+
+	  </body>
+	</html>
+
+There is a lot going on in the interface code, so let's break it down into sections. The first section being discussed is the section we are familiar with from the other code examples:
+
+::
+
+	<%
+		  String BUCKETNAME = "YOUR_BUCKET_NAME";
+     String guestbookName = request.getParameter("guestbookName");
+     if (guestbookName == null) {
+       guestbookName = "default";
+     }
+     pageContext.setAttribute("guestbookName", guestbookName);
+
+     UserService userService = UserServiceFactory.getUserService();
+     User user = userService.getCurrentUser();
+     if (user != null) {
+       pageContext.setAttribute("user", user);
+   %>
+       <p>Hello, ${fn:escapeXml(user.nickname)}! (You can <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">sign out</a>.)</p>
+   <%
+     } else {
+   %>
+       <p>Hello! <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a> to include your name with greetings you post.</p>
+   <%
+     }
+   %>
+
+This section of the code is merely checking to see if the user is logged in to a Google Account and displaying the appropriate login or logout link. The one addition to this section is the *BUCKETNAME* variable. This variable should be set to the name of the bucket that you created in the prerequisites section of `this document`_.
+
+The next section of the code to examine deals with fetching all of the objects in the bucket specified by the *BUCKETNAME* variable:
+
+::
+
+	URL url = new URL("http://" + BUCKETNAME + ".storage.googleapis.com");
+	
+	HTTPRequest bucketListRequest = new HTTPRequest(url, HTTPMethod.GET);
+	URLFetchService service = URLFetchServiceFactory.getURLFetchService();
+	HTTPResponse bucketLisResponse = service.fetch(bucketListRequest);
+	String content = new String(bucketLisResponse.getContent(), "UTF-8");
+
+This section of the code is displaying a few different techniques and services. First off, the GAE URL Fetch service APIs are being used to send a GET request to the bucket we are interested in. This process involves creating an *HTTPRequest* object to represent the GET request, creating a *URLFetchService* object to fetch the request's response and an *HTTPResponse* object to store the response for use. The GET request in question is part of the Google Cloud Storage XML RESTful APIs, which are `documented here`_. As GAE support for Google Cloud Storage is still experimental, there is no set Java method to retrieve the contents of a bucket, which is why we have to resort to this method.
+
+.. _documented here: https://developers.google.com/storage/docs/developer-guide
+
+In the next section of the code, we parse the XML response of our GET request:
+
+::
+
+		DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+		Document doc = docBuilder.parse(content);
+	
+		// normalize text representation
+		doc.getDocumentElement().normalize();
+		NodeList listOfEntries = doc.getElementsByTagName("Contents");
+		if (listOfEntries.getLength() == 0)
+		{
+	%>
+	<p>Guestbook '${fn:escapeXml(guestbookName)}' has no messages.</p>
+	<%
+		}
+		else
+		{
+	%>
+	<p>Messages in Guestbook '${fn:escapeXml(guestbookName)}'.</p>
+
+The first three lines create a *DocumentBuilder* object that we can use to parse the XML response. We then normalize the text representation so that we can query our newly parsed response content by XML tag names. We get the "Contents" tag and check to see if there are any messages stored within this guestbook's bucket.
+
+The next section of the code represents the logic behind extracting all of the messages from the XML response:
+
+::
+
+	<%
+			for (int i=0; i<listOfEntries.getLength(); i++)
+			{
+				Node entryNode = listOfEntries.item(i);
+				if (entryNode.getNodeType() == Node.ELEMENT_NODE)
+				{
+					Element entryElement = (Element) entryNode;
+					String entryMessageKey = entryElement.getElementsByTagName("Key").item(0).getNodeValue().trim();
+					String fileName = "/gs/" + BUCKETNAME + "/" + entryMessageKey;
+					AppEngineFile readableFile = new AppEngineFile(fileName);
+					FileService fileService = FileServiceFactory.getFileService();
+					FileReadChannel readChannel = fileService.openReadChannel(readableFile, false);
+					BufferedReader reader = new BufferedReader(Channels.newReader(readChannel, "UTF-8"));
+					String line = reader.readLine();
+					pageContext.setAttribute("greeting_content", line);
+	%>
+	<blockquote>${fn:escapeXml(greeting_content)}</blockquote>
+	<%
+				}
+			}
+		}
+		
+	%>
+
+This section is where we use the Google Cloud Storage Java APIs to access each file within the bucket. We first create the file name using the bucket name and the key retrieved from the XML response. We then create an *AppEngineFile* object to represent the file and a *FileReadChannel* object to represent the read channel. Due to the fact that all messages are stored on a single line, we simply retrieve this line from the reader and display it on the page.
+
+The final section of the code represents the same two forms used in the original datastore code sample.
+
+Creating New Guestbook Entries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The sign servlet is where new guestbook entries are created. The code for the sign servlet looks like this:
+
+::
+
+	package guestbook
+
+	import java.util.logging.Logger
+	import java.util.Date
+	import java.io.PrintWriter
+	import java.nio.channels.Channels
+	import javax.servlet.http.{HttpServlet, HttpServletRequest => HSReq, HttpServletResponse => HSResp}
+	import com.google.appengine.api.users.{User, UserService => UServ, UserServiceFactory => UServFactory}
+	import com.google.appengine.api.files.{AppEngineFile, FileReadChannel, FileService, FileServiceFactory, FileWriteChannel}
+	import com.google.appengine.api.files.GSFileOptions.GSFileOptionsBuilder
+
+	class SignGuestbookServlet extends HttpServlet
+	{
+	    val log = Logger.getLogger("SignGuestbookServlet")
+		 // You might make this depend on the guest book name for example.
+		 val BUCKETNAME = "YOUR_BUCKET_NAME"
+		 // You might make this depend on information specific to the message being posted for example.
+		 val FILENAME = "YOUR_FILE_NAME"
+
+	    override def doPost( req : HSReq, resp : HSResp)
+	    {
+	      val userService = UServFactory.getUserService()
+	      val user = userService.getCurrentUser()
+
+	      val guestbookName = req.getParameter("guestbookName")
+	      val content = req.getParameter("content")
+	      val date = new Date()
+
+			val fileService = FileServiceFactory.getFileService()
+			val optionsBuilder = new GSFileOptionsBuilder().setBucket(BUCKETNAME).setKey(FILENAME).setAcl("public-read").addUserMetadata("dateCreated", date.toString()).addUserMetadata("author", user.toString())
+			val writableFile = fileService.createNewGSFile(optionsBuilder.build())
+
+			// Lock for writing because we intend to finalize this object.
+			val lockForWrite = true
+			val writeChannel = fileService.openWriteChannel(writableFile, lockForWrite)
+			val out = new PrintWriter(Channels.newWriter(writeChannel, "UTF8"))
+			out.println(content)
+			out.close()
+
+			// Finalize the object so that it can be read from later.
+			writeChannel.closeFinally()
+			log.info("Just created new entry in guestbook: " + content + "\nfrom user: " + user)
+
+			resp.sendRedirect("/guestbook.jsp?guestbookName=" + guestbookName)
+	    }
+	}
+
+The first important thing to note involves the two new values added to the servlet, *BUCKETNAME* and *FILENAME*. While these are represented by constant values, you would likely need to change these for different entries. You might for example base your bucket name on the name of the guest book that you are submitting an entry to. You might base the file name on some unique combination of the message's properties, such as the author's name and the date created. Once you have figured this out, all you need to do is use a *GSFileOptionsBuilder* object to configure your new message and then create a new *GSFile* object to represent it. You then open up a channel for writing and lock it for exclusive access since the message is going to be finalized in this process.
+
+As noted earlier, files stored using the Google Cloud Storage services are immutable once saved. Therefore you need to explicitly finalize the object to state that you are done making changes to it. The servlet ends by redirecting back to the guestbook.
