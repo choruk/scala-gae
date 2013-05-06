@@ -221,13 +221,177 @@ To set up your app to use the Google Cloud SQL service, you need to follow the i
 .. _this Google documentation: https://developers.google.com/appengine/docs/java/cloud-sql/developers-guide
 .. _downloaded the mysql-connector-java.jar: http://dev.mysql.com/downloads/connector/j/
 
+Modifying the Ant Build File
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before we look at the Google Cloud SQL API in use, we need to make a slight modification to the "runserver" target defined in our *buid.xml* file. In order to be able to use Google Cloud SQL services on the development server, we need to pass a few extra command line arguments to the call to launch the development server. The target now looks like this:
+
+::
+
+	<target name="runserver" depends="compile" description="Starts the development server.">
+       <dev_appserver war="war" port="8888">
+					<options>
+						<arg value="--jvm_flag=-Drdbms.server=local" />
+						<arg value="--jvm_flag=-Drdbms.driver=com.mysql.jdbc.Driver" />
+						<arg value="--jvm_flag=-Drdbms.url=jdbc:mysql://localhost:3306/yourdatabase?user=root" />
+					</options>
+				</dev_appserver>
+   </target>
+
+These three new flags tell the development server to use the local MySQL instance inside of the database named "yourdatabase" with the root user. If you wanted to log in with an account other than the root user, simply replace the string after the question mark with *username=userName&amp;password=password*, replacing *userName* with your desired user name and *password* with the password for that user.
+
 Creating the User Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The user interface will once again be creating using JSPs for all the same reasons as before, however this time the app itself has changed slightly: users can no longer
+The user interface will once again be created using JSPs for all the same reasons as before, however this time the app itself has changed slightly: users can no longer switch between different guestbooks while posting messages. The main reason behind this change is due to the use of a relational database and the fact that we can no longer create new "groupings" or database tables on the fly. The code looks like this:
+
+::
+
+	<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+	<%@ page import="java.util.List" %>
+	<%@ page import="java.sql.*" %>
+	<%@ page import="com.google.appengine.api.rdbms.AppEngineDriver" %>
+	<%@ page import="com.google.appengine.api.users.User" %>
+	<%@ page import="com.google.appengine.api.users.UserService" %>
+	<%@ page import="com.google.appengine.api.users.UserServiceFactory" %>
+	<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
+	<html>
+		<head>
+	  	<link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+		</head>
+	  <body>
+
+	  <%
+		UserService userService = UserServiceFactory.getUserService();
+	    	User user = userService.getCurrentUser();
+	    	if (user != null) {
+	      	pageContext.setAttribute("user", user);
+	  %>
+	      <p>Hello, ${fn:escapeXml(user.nickname)}! (You can <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">sign out</a>.)</p>
+	  <%
+	    	} else {
+	  %>
+	      <p>Hello! <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a> to include your name with greetings you post.</p>
+	  <%
+	    }
+	  %>
+
+	<%
+			Connection connection = null;
+			connection = DriverManager.getConnection("jdbc:google:rdbms://instance_name/guestbook");
+			ResultSet resultSet = connection.createStatement().executeQuery("SELECT guestName, content, entryID FROM entries");
+	%>
+
+			<table style="border: 1px solid black">
+				<tbody>
+					<tr>
+						<th width="35%" style="background-color: #CCFFCC; margin: 5px">Name</th>
+						<th style="background-color: #CCFFCC; margin: 5px">Message</th>
+						<th style="background-color: #CCFFCC; margin: 5px">ID</th>
+					</tr>
+		<%
+					while (resultSet.next())
+					{
+					    String guestName = resultSet.getString("guestName");
+					    String content = resultSet.getString("content");
+					    int id = resultSet.getInt("entryID");
+		%>
+
+					<tr>
+						<td><%= guestName %></td>
+						<td><%= content %></td>
+						<td><%= id %></td>
+					</tr>
+
+		<%
+					}
+					connection.close();
+		%>
+
+				</tbody>
+			</table>
+			<br />
+			No more messages!
+			<p><strong>Sign the guestbook!</strong></p>
+			<form action="/sign" method="post">
+			    <div>Message:
+			    <br /><textarea name="content" rows="3" cols="60"></textarea>
+			    </div>
+			    <div><input type="submit" value="Post Greeting" /></div>
+			    <input type="hidden" name="guestbookName" />
+			</form>
+	  </body>
+	</html>
+
+The important part of this code is where a new *Connection* object is created. At the call to *DriverManager*'s *getConnection()* method, you would need to replace "instance_name" with the name of your Google Cloud SQL instance and "guestbook" with the name of the database you wish to establish a connection to. A SQL query is then executed to retrieve all of the entries in the entries table of the guestbook database before they are displayed.
 
 Creating New Guestbook Entries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The sign servlet is where new guestbook entries are created. The code for the sign servlet looks like this:
+
+::
+
+	package guestbook
+
+	import com.google.appengine.api.rdbms.AppEngineDriver
+	import java.util.logging.Logger
+	import java.util.Date
+	import javax.servlet.http.{HttpServlet, HttpServletRequest => HSReq, HttpServletResponse => HSResp}
+	import com.google.appengine.api.users.{User, UserService => UServ, UserServiceFactory => UServFactory}
+	import java.sql._
+
+	class SignGuestbookServlet extends HttpServlet
+	{
+	    val log = Logger.getLogger("SignGuestbookServlet")
+
+	    override def doPost( req : HSReq, resp : HSResp)
+	    {
+			val out = resp.getWriter()
+			var connection:Connection = null
+			val userService = UServFactory.getUserService()
+			val user = userService.getCurrentUser()
+		   try {
+		   	DriverManager.registerDriver(new AppEngineDriver())
+		      connection = DriverManager.getConnection("jdbc:google:rdbms://instance_name/guestbook")
+		      val content = req.getParameter("content")
+		      if (content == "")
+		      	out.println("<html><head><link type='text/css' rel='stylesheet' href='/stylesheets/main.css' /></head><body>You are missing a message! Try again! Redirecting in 3 seconds...</body></html>")
+				else
+				{
+		      	val statement ="INSERT INTO entries (guestName, content) VALUES( ? , ? )"
+		      	val preparedStatement = connection.prepareStatement(statement)
+		      	preparedStatement.setString(1, if (req.getUserPrincipal() != null) req.getUserPrincipal().getName() else "anonymous")
+		      	preparedStatement.setString(2, content)
+		      	var success = 2
+		      	success = preparedStatement.executeUpdate()
+		      	if (success == 1)
+		        		out.println("<html><head><link type='text/css' rel='stylesheet' href='/stylesheets/main.css' /></head><body>Success! Redirecting in 3 seconds...</body></html>")
+					else if (success == 0)
+		        		out.println("<html><head><link type='text/css' rel='stylesheet' href='/stylesheets/main.css' /></head><body>Failure! Please try again! Redirecting in 3 seconds...</body></html>")
+		      }
+		   }
+			catch
+			{
+		   	case e:SQLException => e.printStackTrace()
+			}
+			finally
+			{
+		      if (connection != null) 
+		      	try
+						connection.close()
+		          catch
+					 {
+		          	case ignore:SQLException => ()
+					 }
+		   }
+			resp.setHeader("Refresh","3; url=/guestbook.jsp")
+	    }
+	}
+
+Once again, we need to create a *Connection* object and use a *DriverManager* to help initiate the connection. We then create a prepared statement and place the message contents, along with a user name if the poster was signed in, and update the database with this new entry. The last line sets the header on the response to refresh the browser window 3 seconds after the method completes with the *guestbook.jsp* interface.
+
 Using the Google Cloud Storage API
 ----------------------------------
+

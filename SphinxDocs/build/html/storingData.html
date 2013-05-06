@@ -232,6 +232,165 @@ class SignGuestbookServlet extends HttpServlet
 <h2>Using the Google Cloud SQL API<a class="headerlink" href="#using-the-google-cloud-sql-api" title="Permalink to this headline">¶</a></h2>
 <p>Google Cloud SQL is a service that lets you locate your MySQL Databases in Google&#8217;s cloud. GAE support of Google Cloud SQL is currently experimental, but you can currently try it out for free until next month (June 2013). If you need a relational database for your GAE app, Google Cloud SQL is your answer. There is one key difference to note from the other database options when you are using the Google Cloud SQL service: you must have your own local MySQL instance configured in order to mirror the Google Cloud SQL service during development.</p>
 <p>To set up your app to use the Google Cloud SQL service, you need to follow the instructions in the first two sections of <a class="reference external" href="https://developers.google.com/appengine/docs/java/cloud-sql/developers-guide">this Google documentation</a>. You also need to make sure you have <a class="reference external" href="http://dev.mysql.com/downloads/connector/j/">downloaded the mysql-connector-java.jar</a> and placed it inside of your <em>appengine-java-sdk/lib/impl</em> directory.</p>
+<div class="section" id="modifying-the-ant-build-file">
+<h3>Modifying the Ant Build File<a class="headerlink" href="#modifying-the-ant-build-file" title="Permalink to this headline">¶</a></h3>
+<p>Before we look at the Google Cloud SQL API in use, we need to make a slight modification to the &#8220;runserver&#8221; target defined in our <em>buid.xml</em> file. In order to be able to use Google Cloud SQL services on the development server, we need to pass a few extra command line arguments to the call to launch the development server. The target now looks like this:</p>
+<div class="highlight-python"><pre>     &lt;target name="runserver" depends="compile" description="Starts the development server."&gt;
+    &lt;dev_appserver war="war" port="8888"&gt;
+                                     &lt;options&gt;
+                                             &lt;arg value="--jvm_flag=-Drdbms.server=local" /&gt;
+                                             &lt;arg value="--jvm_flag=-Drdbms.driver=com.mysql.jdbc.Driver" /&gt;
+                                             &lt;arg value="--jvm_flag=-Drdbms.url=jdbc:mysql://localhost:3306/yourdatabase?user=root" /&gt;
+                                     &lt;/options&gt;
+                             &lt;/dev_appserver&gt;
+&lt;/target&gt;</pre>
+</div>
+<p>These three new flags tell the development server to use the local MySQL instance inside of the database named &#8220;yourdatabase&#8221; with the root user. If you wanted to log in with an account other than the root user, simply replace the string after the question mark with <em>username=userName&amp;amp;password=password</em>, replacing <em>userName</em> with your desired user name and <em>password</em> with the password for that user.</p>
+</div>
+<div class="section" id="id1">
+<h3>Creating the User Interface<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>The user interface will once again be created using JSPs for all the same reasons as before, however this time the app itself has changed slightly: users can no longer switch between different guestbooks while posting messages. The main reason behind this change is due to the use of a relational database and the fact that we can no longer create new &#8220;groupings&#8221; or database tables on the fly. The code looks like this:</p>
+<div class="highlight-python"><pre>&lt;%@ page contentType="text/html;charset=UTF-8" language="java" %&gt;
+&lt;%@ page import="java.util.List" %&gt;
+&lt;%@ page import="java.sql.*" %&gt;
+&lt;%@ page import="com.google.appengine.api.rdbms.AppEngineDriver" %&gt;
+&lt;%@ page import="com.google.appengine.api.users.User" %&gt;
+&lt;%@ page import="com.google.appengine.api.users.UserService" %&gt;
+&lt;%@ page import="com.google.appengine.api.users.UserServiceFactory" %&gt;
+&lt;%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %&gt;
+
+&lt;html&gt;
+        &lt;head&gt;
+        &lt;link type="text/css" rel="stylesheet" href="/stylesheets/main.css" /&gt;
+        &lt;/head&gt;
+  &lt;body&gt;
+
+  &lt;%
+        UserService userService = UserServiceFactory.getUserService();
+        User user = userService.getCurrentUser();
+        if (user != null) {
+        pageContext.setAttribute("user", user);
+  %&gt;
+      &lt;p&gt;Hello, ${fn:escapeXml(user.nickname)}! (You can &lt;a href="&lt;%= userService.createLogoutURL(request.getRequestURI()) %&gt;"&gt;sign out&lt;/a&gt;.)&lt;/p&gt;
+  &lt;%
+        } else {
+  %&gt;
+      &lt;p&gt;Hello! &lt;a href="&lt;%= userService.createLoginURL(request.getRequestURI()) %&gt;"&gt;Sign in&lt;/a&gt; to include your name with greetings you post.&lt;/p&gt;
+  &lt;%
+    }
+  %&gt;
+
+&lt;%
+                Connection connection = null;
+                connection = DriverManager.getConnection("jdbc:google:rdbms://instance_name/guestbook");
+                ResultSet resultSet = connection.createStatement().executeQuery("SELECT guestName, content, entryID FROM entries");
+%&gt;
+
+                &lt;table style="border: 1px solid black"&gt;
+                        &lt;tbody&gt;
+                                &lt;tr&gt;
+                                        &lt;th width="35%" style="background-color: #CCFFCC; margin: 5px"&gt;Name&lt;/th&gt;
+                                        &lt;th style="background-color: #CCFFCC; margin: 5px"&gt;Message&lt;/th&gt;
+                                        &lt;th style="background-color: #CCFFCC; margin: 5px"&gt;ID&lt;/th&gt;
+                                &lt;/tr&gt;
+        &lt;%
+                                while (resultSet.next())
+                                {
+                                    String guestName = resultSet.getString("guestName");
+                                    String content = resultSet.getString("content");
+                                    int id = resultSet.getInt("entryID");
+        %&gt;
+
+                                &lt;tr&gt;
+                                        &lt;td&gt;&lt;%= guestName %&gt;&lt;/td&gt;
+                                        &lt;td&gt;&lt;%= content %&gt;&lt;/td&gt;
+                                        &lt;td&gt;&lt;%= id %&gt;&lt;/td&gt;
+                                &lt;/tr&gt;
+
+        &lt;%
+                                }
+                                connection.close();
+        %&gt;
+
+                        &lt;/tbody&gt;
+                &lt;/table&gt;
+                &lt;br /&gt;
+                No more messages!
+                &lt;p&gt;&lt;strong&gt;Sign the guestbook!&lt;/strong&gt;&lt;/p&gt;
+                &lt;form action="/sign" method="post"&gt;
+                    &lt;div&gt;Message:
+                    &lt;br /&gt;&lt;textarea name="content" rows="3" cols="60"&gt;&lt;/textarea&gt;
+                    &lt;/div&gt;
+                    &lt;div&gt;&lt;input type="submit" value="Post Greeting" /&gt;&lt;/div&gt;
+                    &lt;input type="hidden" name="guestbookName" /&gt;
+                &lt;/form&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<p>The important part of this code is where a new <em>Connection</em> object is created. At the call to <em>DriverManager</em>&#8216;s <em>getConnection()</em> method, you would need to replace &#8220;instance_name&#8221; with the name of your Google Cloud SQL instance and &#8220;guestbook&#8221; with the name of the database you wish to establish a connection to. A SQL query is then executed to retrieve all of the entries in the entries table of the guestbook database before they are displayed.</p>
+</div>
+<div class="section" id="id2">
+<h3>Creating New Guestbook Entries<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>The sign servlet is where new guestbook entries are created. The code for the sign servlet looks like this:</p>
+<div class="highlight-python"><pre>package guestbook
+
+import com.google.appengine.api.rdbms.AppEngineDriver
+import java.util.logging.Logger
+import java.util.Date
+import javax.servlet.http.{HttpServlet, HttpServletRequest =&gt; HSReq, HttpServletResponse =&gt; HSResp}
+import com.google.appengine.api.users.{User, UserService =&gt; UServ, UserServiceFactory =&gt; UServFactory}
+import java.sql._
+
+class SignGuestbookServlet extends HttpServlet
+{
+    val log = Logger.getLogger("SignGuestbookServlet")
+
+    override def doPost( req : HSReq, resp : HSResp)
+    {
+                val out = resp.getWriter()
+                var connection:Connection = null
+                val userService = UServFactory.getUserService()
+                val user = userService.getCurrentUser()
+           try {
+                DriverManager.registerDriver(new AppEngineDriver())
+              connection = DriverManager.getConnection("jdbc:google:rdbms://instance_name/guestbook")
+              val content = req.getParameter("content")
+              if (content == "")
+                out.println("&lt;html&gt;&lt;head&gt;&lt;link type='text/css' rel='stylesheet' href='/stylesheets/main.css' /&gt;&lt;/head&gt;&lt;body&gt;You are missing a message! Try again! Redirecting in 3 seconds...&lt;/body&gt;&lt;/html&gt;")
+                        else
+                        {
+                val statement ="INSERT INTO entries (guestName, content) VALUES( ? , ? )"
+                val preparedStatement = connection.prepareStatement(statement)
+                preparedStatement.setString(1, if (req.getUserPrincipal() != null) req.getUserPrincipal().getName() else "anonymous")
+                preparedStatement.setString(2, content)
+                var success = 2
+                success = preparedStatement.executeUpdate()
+                if (success == 1)
+                                out.println("&lt;html&gt;&lt;head&gt;&lt;link type='text/css' rel='stylesheet' href='/stylesheets/main.css' /&gt;&lt;/head&gt;&lt;body&gt;Success! Redirecting in 3 seconds...&lt;/body&gt;&lt;/html&gt;")
+                                else if (success == 0)
+                                out.println("&lt;html&gt;&lt;head&gt;&lt;link type='text/css' rel='stylesheet' href='/stylesheets/main.css' /&gt;&lt;/head&gt;&lt;body&gt;Failure! Please try again! Redirecting in 3 seconds...&lt;/body&gt;&lt;/html&gt;")
+              }
+           }
+                catch
+                {
+                case e:SQLException =&gt; e.printStackTrace()
+                }
+                finally
+                {
+              if (connection != null)
+                try
+                                        connection.close()
+                  catch
+                                 {
+                        case ignore:SQLException =&gt; ()
+                                 }
+           }
+                resp.setHeader("Refresh","3; url=/guestbook.jsp")
+    }
+}</pre>
+</div>
+<p>Once again, we need to create a <em>Connection</em> object and use a <em>DriverManager</em> to help initiate the connection. We then create a prepared statement and place the message contents, along with a user name if the poster was signed in, and update the database with this new entry. The last line sets the header on the response to refresh the browser window 3 seconds after the method completes with the <em>guestbook.jsp</em> interface.</p>
+</div>
 </div>
 <div class="section" id="using-the-google-cloud-storage-api">
 <h2>Using the Google Cloud Storage API<a class="headerlink" href="#using-the-google-cloud-storage-api" title="Permalink to this headline">¶</a></h2>
@@ -254,7 +413,12 @@ class SignGuestbookServlet extends HttpServlet
 <li><a class="reference internal" href="#creating-new-guestbook-entries">Creating New Guestbook Entries</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#using-the-google-cloud-sql-api">Using the Google Cloud SQL API</a></li>
+<li><a class="reference internal" href="#using-the-google-cloud-sql-api">Using the Google Cloud SQL API</a><ul>
+<li><a class="reference internal" href="#modifying-the-ant-build-file">Modifying the Ant Build File</a></li>
+<li><a class="reference internal" href="#id1">Creating the User Interface</a></li>
+<li><a class="reference internal" href="#id2">Creating New Guestbook Entries</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#using-the-google-cloud-storage-api">Using the Google Cloud Storage API</a></li>
 </ul>
 </li>
